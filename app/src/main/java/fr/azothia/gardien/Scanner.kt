@@ -73,6 +73,14 @@ object Scanner {
         "sync", "security", "sécurité", "google services", "android"
     )
 
+    /** Clés de test publiques d'Android (AOSP) : n'importe qui peut signer avec. */
+    private val PUBLIC_AOSP_KEYS = setOf(
+        "61ED377E85D386A8DFEE6B864BD85B0BFAA5AF81", // testkey
+        "27196E386B875E76ADF700E7EA84E4C6EEE33DFA", // platform
+        "5B368CFF2DA2686996BC95EAC190EAA4F5630FE5", // shared
+        "B79DF4A82E90B57EA76525AB7037AB238A42F5D3"  // media
+    )
+
     private val ROOT_FILES = listOf(
         "/system/bin/su", "/system/xbin/su", "/sbin/su", "/su/bin/su",
         "/data/local/xbin/su", "/data/local/bin/su", "/system/app/Superuser.apk"
@@ -139,7 +147,10 @@ object Scanner {
             known = byName
             reasons.add("Logiciel espion connu : $byName (nom d'application)")
         }
-        for (sha1 in certSha1s(pi)) {
+        // Les applis système et les clés publiques d'Android (connues de tous) ne prouvent rien :
+        // on ne les juge pas sur leur signature seule.
+        for (sha1 in if (isSystem) emptyList() else certSha1s(pi)) {
+            if (sha1 in PUBLIC_AOSP_KEYS) continue
             val n = db.certs[sha1]
             if (n != null) {
                 if (known == null) known = n
